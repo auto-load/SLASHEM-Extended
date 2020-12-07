@@ -41,6 +41,7 @@ all: src/$(GAME) dat/nhdat dat/license
 install: all $(if $(MASTERDIR),slave)
 	$(INSTALL_DIR) $(GAMEDIR)
 	$(INSTALL_GAME) src/$(GAME) $(GAMEDIR)
+	$(INSTALL_GAME) pkg/mac/play $(GAMEDIR)
 	$(INSTALL_DATA) dat/nhdat dat/license $(GAMEDIR)
 	$(INSTALL_VARDIR) $(VARDIR) $(VARDIR)/save
 	$(call TOUCH_VARDATA,$(VARDIR)/perm)

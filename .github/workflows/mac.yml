@@ -1,0 +1,63 @@
+# Links:
+# - https://docs.github.com/articles/getting-started-with-github-actions
+# - https://docs.github.com/en/free-pro-team@latest/actions/reference
+# - https://github.com/marketplace
+
+name: Build macOS binaries of SLASHEM-Extended
+on:
+  push:
+    tags:
+      - '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+
+jobs:
+  build_job_macos:
+    name: Building SLASHEM-Extended for macOS
+    runs-on: macos-latest
+    env:
+      GITREF: ${{ github.ref }}
+
+    steps:
+      - name: Install dependencies
+        run: brew install upx
+      - name: Clone repository
+        # https://github.com/marketplace/actions/checkout
+        uses: actions/checkout@v2
+        with:
+          ref: macos
+          fetch-depth: 3
+          submodules: false
+      - name: Set up environment variables
+        run: "${GITHUB_WORKSPACE}/pkg/mac/env.sh"
+      - name: Build
+        run: "${GITHUB_WORKSPACE}/pkg/mac/install.sh"
+      - name: Prepare archive of build as artifact
+        id: package
+        run: "${GITHUB_WORKSPACE}/pkg/mac/package.sh"
+      - name: Create Release
+        id: create_release
+        # https://github.com/marketplace/actions/create-a-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.package.outputs.tagname }}
+          release_name: '${{ steps.package.outputs.tagname }}: SLASHEM-Extended MacOS X'
+          draft: false
+          prerelease: false
+          body: |
+            To players:
+
+            1. Extract the zip file.
+            2. Click open slex-*.bzip2.command to extract the game and play.
+            3. Next time you can enter directory slex-*.
+            4. Click play and have fun again!
+      - name: Upload Release Asset
+        # https://github.com/marketplace/actions/upload-a-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.package.outputs.filepath }}
+          asset_name: ${{ steps.package.outputs.filename }}
+          asset_content_type: application/octet-stream

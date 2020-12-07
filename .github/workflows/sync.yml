@@ -1,0 +1,20 @@
+name: Synchronize with the upstream repo
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Pulling the latest changes for SLASHEM-Extended
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: master
+          submodules: false
+      - run: git remote add upstream 'https://github.com/SLASHEM-Extended/SLASHEM-Extended.git'
+      - run: git pull upstream master
+      - run: git push origin master
