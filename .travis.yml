@@ -1,0 +1,64 @@
+os: osx
+language: c
+compiler: clang
+#osx_image: xcode8.0
+
+branches:
+  only:
+    # YYYY-MM-DD
+    - /^\d+-\d+-\d+$/
+
+env:
+  global:
+    - DST_DIR=$HOME/slex/build
+    - APP_DIR=$HOME/slex/app
+    - PKG_DIR=$HOME/slex/archive
+
+install:
+  - brew update
+  - brew install upx
+
+script:
+  - export version="$(./util/version.sh)"
+  - export origin_commit="$(git rev-list -n 1 master)"
+  - \[ -n "${version}" -a -n "${origin_commit}" ]
+  - mkdir -p "${DST_DIR}" "${APP_DIR}" "${PKG_DIR}"
+  - ./pkg/mac/install.sh "${DST_DIR}" 2>&1 | tail -n 100
+  - find "${DST_DIR}" -type f -iname slex -exec upx --ultra-brute {} +
+  - |
+    ./pkg/makeself/makeself.sh \
+        --bzip2 --complevel 9 --noprogress --nooverwrite \
+        --target "slex-${origin_commit}-osx-personal-${TRAVIS_TAG}" \
+        "${DST_DIR}/slex-${version}" \
+        "${APP_DIR}/slex-${origin_commit}-osx-personal-${TRAVIS_TAG}.bzip2.command" \
+        "SLASH'EM Extended (dev: ${origin_commit} ${TRAVIS_TAG})" \
+        ./play
+  - (cd "${APP_DIR}" && zip -9 -r --symlinks "${PKG_DIR}/slex-${origin_commit}-osx-personal-${TRAVIS_TAG}.zip" *)
+
+deploy:
+  skip_cleanup: true
+  file_glob: true
+  file: $PKG_DIR/*
+  provider: releases
+  api_key:
+    secure: 'o3HyQjd3y6dViTd++C3AJ129pHWUJXp2BSx15uJWM9jly3iExJdQ90I/WWHXaJO9Sa/QgV8G8Z1q+H5kIM6pjjvNDS+YJFXxvJZu7i/EoQipH2LWJv39VNw0GN6FZW0hUSEVQz7nmLWjgG4IqzAPN4zYJ55Lp6Wq3qxCmS+Df7ddnjx4VGFgf+avG4otd9dia6w3m9zYT9ehWv4cfKDomoN+voesCmq5YCbO277Xy0a40nPl3biXt4o0EDZbWdSTPSFIuhZLn/5JFceG0X3otChIozYkqRozR+WGnRFVHBLMwXgJQA+SjyC5UWyeQhrcKxs1td+D4XT7wIHJ1Q4w5RPZSoneH0reYnYDX+QosLe8+DR5Wl+GhOg+I9Yqa/nvx5PVkh/PftejiSymFM7ISrKig0Q8A15qzlLqnhNP+N1P1SSDJx2HVLOc6kwdOA2fLLXAIpn3opmQL4vrkWUiU8z9uiWdzfbtDyOMTr0bkCXIgTXzIQ6E3mMLTpOzFDoXrBQaT484WWDDLi6jK2Dq09+X2yxswgynTfrQ6oKRR4biOdo3mTE1iuIBE9F0/m90+EsAtZdyc4CAjLPz0LxyHvQFnJK9Zjsg9wM8AMqfjr1UesIGMEbmCFo2P1FWD+SoiqeQePjxm3eCi1CcGVzRCQIm29fweK10MbZBMEoQsS0='
+  on:
+    repo: auto-load/SLASHEM-Extended
+    branch: mac
+    tags: true
+
+notifications:
+  email:
+    on_success: always
+    on_failure: always
+  irc:
+  irc_off:  # until 2020-12-25 ?
+    channels:
+      - "irc.freenode.net#slashemextended"
+      - "irc.freenode.net#em.slashem.me"
+    template:
+      - '[UNOFFICIAL] My personal build for MacOS :P https://github.com/%{repository_slug}/releases/tag/%{branch}'
+    on_success: always
+    on_failure: never
+    use_notice: false
+    skip_join: false
